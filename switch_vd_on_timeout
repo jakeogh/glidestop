@@ -1,0 +1,64 @@
+#!/bin/bash
+
+debug=0                                 #uncomment this line to enable debugging output
+
+my_pid=$$
+
+error_exit_code="${error_exit_code-75}"
+
+debug="${debug-0}"
+
+if [[ "${debug}" != "1" ]] ; then
+        exec > >(cat /dev/null) 2>&1    #keep script quiet unless debug=1
+fi
+
+if [[ "${debug}" != "1" ]] && [[ "${debug}" != "0" ]] ; then
+        fail "debug must be set to 0 or 1, currently debug=${debug}"    #note this will never actually print anything, because debug != 1, but we want to fail here anyway
+fi
+
+
+
+dbg()
+{
+        if [[ "${debug}" == "1" ]] ; then
+                return 0                #return true if debug=1
+        else
+                return 1                #debugging is disabled, stop here
+        fi
+}
+
+log()                                   #print log message if debug=1
+{
+        if dbg ; then
+                test -t 1 && logger -s "[stderr][$PPID][${my_pid}] $*" || logger "[$PPID][${my_pid}] $*"
+        fi
+        return $?
+}
+
+log "-----starting switch_vd_timeout-----"
+
+fail()                                  #log error and exit
+{
+        log "fail() ERROR: $*"
+        log "fail() EXITING ${error_exit_code}"
+        exit "${error_exit_code}"
+}
+
+function on_ERR()
+{
+        prev_line=`caller`
+        log "on_ERR called from line: ${prev_line}"
+        fail "trapped ERR - on_ERR() called in $0 with $*. Exiting"
+}
+
+#trap on_ERR ERR                         #from the man docs on set -o errexit
+
+
+max_time=".2"
+
+timeout "${max_time}" ~/cfg/wm/switch_vd "$#"
+
+if [ "$?" == "124" ]
+then
+	log "===========switch_vd timeout at $max_time=============="
+fi

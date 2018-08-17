@@ -1,0 +1,5 @@
+#!/bin/sh
+
+echo "`date` executed paste" >> /home/default/date
+
+xdotool type --delay 0 --clearmodifiers "$(xsel -o)"

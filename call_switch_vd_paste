@@ -1,0 +1,3 @@
+#!/bin/sh
+
+~/cfg/wm/switch_vd paste >> ~/switch_vd.txt 2>&1

@@ -1,0 +1,12 @@
+#!/bin/sh
+
+ids=`~/cfg/wm/all_window_ids`
+
+for id in $ids;
+do
+    echo -n "${id} "
+    ~/cfg/xorg/window_id_to_pid "${id}" | tr '\n' ' '
+    ~/cfg/wm/id_to_WM_NAME "${id}" | tr '\n' ' '
+    echo -n -e '\n'
+
+done

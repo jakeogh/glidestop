@@ -1,0 +1,3 @@
+#!/bin/sh
+timedate=`date +%Y-%m.%d-%H.%M.%S.%N-%a-%Z`
+echo "${timedate}"

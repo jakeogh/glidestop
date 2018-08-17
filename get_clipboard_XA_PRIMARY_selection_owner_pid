@@ -1,0 +1,3 @@
+#!/bin/sh
+
+~/cfg/display/window_id_to_pid `/cfg/display/get_clipboard_XA_PRIMARY_selection_owner_window_id`

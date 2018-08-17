@@ -1,0 +1,7 @@
+#!/bin/sh
+
+#name=`xprop -id "${1}" WM_NAME 2> /dev/null | grep '=' | tr -d ' '`
+#test -n "${name}" && echo "${name}" && exit 0
+#exit 1
+
+wname "${1}" # https://github.com/wmutils/opt

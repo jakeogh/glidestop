@@ -1,0 +1,16 @@
+#!/usr/bin/env python2.7
+
+# http://ubuntuforums.org/showthread.php?t=1254376
+
+from Xlib import display, X
+
+display = display.Display()
+win_list = display.screen().root.query_tree().children
+print win_list
+
+for win in win_list:
+    name = win.get_wm_name()
+    transient_for = win.get_wm_transient_for()
+    attrs = win.get_attributes()
+    if attrs.map_state == X.IsViewable:
+        print win, transient_for, name

@@ -1,0 +1,4 @@
+#!/bin/sh
+
+wmctrl -d | cut -c 1-4 | grep '*' | cut -d ' ' -f 1
+

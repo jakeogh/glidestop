@@ -1,0 +1,185 @@
+#!/bin/bash
+
+
+set -o nounset          #-u     # Treat unset variables and parameters other than the special parameters
+                                # "@" and "*" as an error when performing parameter expansion.
+
+set -o errtrace         #-E     # If set, any trap on ERR is inherited by shell functions, command substitutions,
+                                # and commands executed in a subshell environment.
+
+set -o errexit          #-e     # Exit immediately if a pipeline (which may consist of a single simple command),
+                                # a subshell command enclosed in parentheses, or one of the commands executed as
+                                # part of a command list enclosed by braces exits with a non-zero status. See exceptions in docs.
+                                # note that this is no excuse to omit explicit error checking, see
+                                # http://mywiki.wooledge.org/BashFAQ/105 for more information
+
+set -o pipefail                 # If set, the return value of a pipeline is the value of the last (rightmost) command
+                                # to exit with a non-zero status, or zero if all commands in the pipeline exit successfully.
+
+
+#debug=0
+debug=1                                 #uncomment this line to enable debugging output
+
+#exit 0
+my_pid=$$
+
+error_exit_code="${error_exit_code-75}"
+
+debug="${debug-0}"
+
+if [[ "${debug}" != "1" ]] ; then
+        exec > >(cat /dev/null) 2>&1            #keep script quiet unless debug=1
+fi
+
+if [[ "${debug}" != "1" ]] && [[ "${debug}" != "0" ]] ; then
+        fail "debug must be set to 0 or 1, currently debug=${debug}"    #note this will never actually print anything, because debug != 1, but we want to fail here anyway
+fi
+
+
+dbg()
+{
+        if [[ "${debug}" == "1" ]] ; then
+                return 0                #return true if debug=1
+        else
+                return 1                #debugging is disabled, stop here
+        fi
+}
+
+log()                                   #print log message if debug=1
+{
+        if dbg ; then
+                test -t 1 && logger -s "[stderr][$PPID][${my_pid}] $*" || logger -s "[stderr][$PPID][${my_pid}] $*"
+        fi
+        return $?
+}
+
+#timestamp=`~/cfg/time/get_timedate`
+
+#log "starting switch_vd at $timestamp with $@"
+log "-----starting switch_vd-----"
+
+fail()                                  # log error and exit
+{
+        log "fail() ERROR: $*"
+        log "fail() EXITING ${error_exit_code}"
+        exit "${error_exit_code}"
+}
+
+function on_ERR()
+{
+        prev_line=`caller`
+        log "on_ERR called from line: ${prev_line}"
+        fail "trapped ERR - on_ERR() called in $0 with $*. Exiting"
+}
+
+#trap on_ERR ERR                         # from the man docs on set -o errexit
+
+option="${1-0}"
+
+#ps aux | grep switch_vd
+
+# switch_vd
+
+#need to run this on a timeout
+
+# Pause all web browsers not on current virtual desktop
+# executed by wm on desktop switch
+
+#middle click paste is CTRL - SHIFT - INS
+
+# .pekwm/keyboard config:
+#  KeyPress = "Ctrl Mod1 Left" { Actions = "Exec ~/cfg/wm/switch_vd; HideAllMenus; GotoWorkspace Left" }
+#  KeyPress = "Ctrl Mod1 Right" { Actions = "Exec ~/cfg/wm/switch_vd; HideAllMenus; GotoWorkspace Right" }
+#  KeyPress = "Ctrl Mod1 Up" { Actions = "Exec ~/cfg/wm/switch_vd; HideAllMenus; GotoWorkspace Up" }
+#  KeyPress = "Ctrl Mod1 Down" { Actions = "Exec ~/cfg/wm/switch_vd; HideAllMenus; GotoWorkspace Down" }
+
+# remap mouse button 2 (middle click paste) to this script
+# echo -e "\"~/cfg/wm/switch_vd paste &\" \n  b:2" >> .xbindkeysrc ; xbindkeys
+
+
+# un-stop the paused apps for a moment to send data to clipboard
+# would be better to find the specific pid that we are pasting from
+if [[ "${option}" == "paste" ]];
+then
+
+	paused_pids=`~/cfg/ps/stopped_processes`
+	log "paused_pids:${paused_pids}"
+
+	for pid in $paused_pids;
+	do
+		log "kill -CONT ${pid}"
+		kill -CONT "${pid}"
+	done
+
+	log "calling paster"
+
+#	~/cfg/time/get_timedate >> /home/default/date
+	~/cfg/mouse/simulate_button_click 9
+#	~/cfg/time/get_timedate >> /home/default/date
+
+#	~/cfg/mouse/simulate_primary_paste
+	sleep .2		#until I find a way to know when a SelectionRequest completes.
+
+	for pid in $paused_pids;
+	do
+		log "kill -STOP ${pid}"
+		kill -STOP "${pid}"
+	done
+
+
+	exit 0
+fi
+
+# momentarly resume the stopped app which owns the current selection. only works for firefox. xterm does something funky.
+
+#if [[ "${1}" == "paste" ]];
+#then
+#	pid=`~/cfg/display/get_clipboard_XA_PRIMARY_selection_owner_pid` #does not work for xterm selections
+#
+#	kill -CONT "${pid}" && ~/cfg/keyboard/simulate_primary_paste && kill -STOP "${pid}"
+#	exit 0
+#fi
+
+get_pid_binary_path(){
+	log "attempting to get path of PID: ${1} at /proc/$1/exe"
+	readlink -f /proc/"$1"/exe || fail "Could not readlink -f /proc/$1/exe"
+}
+
+#current_desktop=`~/cfg/wm/current_desktop` || exit 1
+
+#wmctrl_output=`~/cfg/wm/list_all`
+
+pids_on_desktop=`~/cfg/wm/pids_on_current_desktop`
+pids_not_on_desktop=`~/cfg/wm/pids_not_on_current_desktop`
+
+#echo "$pids_on_desktop"
+#echo "$pids_not_on_desktop"
+
+log "---pids_on_desktop:$pids_on_desktop---"
+
+for pid in $pids_on_desktop;
+do
+	bin=`get_pid_binary_path "${pid}"`
+	log "bin:$bin"
+#	if [ "${bin}" == "/usr/lib64/firefox/firefox" ] || [[ "${bin}" == "/usr/bin/midori" ]];
+	if [[ "${bin}" == "/usr/local/bin/surf" ]];
+	then
+#		echo "found browser on current desktop at $pid"
+		log "found browser on current desktop at $pid"
+		kill -CONT "${pid}"
+	fi
+done
+
+log "---pids_not_on_desktop:$pids_not_on_desktop---"
+
+for pid in $pids_not_on_desktop;
+do
+	bin=`get_pid_binary_path "${pid}"`
+	log "bin:$bin"
+#	if [ "${bin}" == "/usr/lib64/firefox/firefox" ] || [[ "${bin}" == "/usr/bin/midori" ]];
+#	then
+#		echo "found browser NOT on current desktop at $pid"
+#		kill -STOP "${pid}"
+#	fi
+done
+

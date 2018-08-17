@@ -1,0 +1,17 @@
+#!/bin/sh
+
+current_desktop=`~/cfg/wm/current_desktop`
+
+wmctrl_output=`~/cfg/wm/list_all`
+
+pids=`echo -n "$wmctrl_output" | egrep -v '^[[:alnum:]]* {1,2}'"$current_desktop" | cut -c 15-19 | tr -d ' ' | tr '\n' ' '`
+
+for pid in $pids;
+do
+#    echo "${pid}"
+    if [ "${pid}" != "0" ];
+    then
+        echo -n "${pid} "
+    fi
+done
+

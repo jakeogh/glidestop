@@ -1,0 +1,3 @@
+This is a (broken) attempt to keep web browser windows not in the foreground (actually, not on the current desktop in this iteration) "frozen" with -STOP and auto -CONT them when they are in view or need to wake up to send clipboard data. Currently, the paths are broken and I'm sure I am forgetting a few helper scripts, but the basic idea is here.
+
+The main script is switch_vd, there is a bunch of pekwm specific stuff that needs to be generalized. I am sure I did many things "the long way" and this could be drastically simplified by converting to C and integrating it into something like suckless tabbed.
